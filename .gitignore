@@ -1,0 +1,27 @@
+# Fichiers d'environnement
+.env
+
+# Dossiers de données (ne pas versionner le contenu)
+# Mais garder les dossiers avec .gitkeep
+!wordpress/.gitkeep
+
+database/*
+!database/.gitkeep
+
+backups/*.sql
+backups/backup_*.sql
+!backups/.gitkeep
+
+# Fichiers Docker
+*.log
+
+# Fichiers système
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~

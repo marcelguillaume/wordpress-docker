@@ -1,0 +1,93 @@
+version: '3.8'
+
+services:
+  # Service PHP-FPM avec WP-CLI
+  php:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: wordpress-php
+    volumes:
+      # Bind mount du dossier WordPress (éditable depuis l'IDE local)
+      - ./wordpress:/var/www/html
+      # Bind mount pour les scripts
+      - ./scripts:/scripts
+      # Bind mount pour les backups
+      - ./backups:/backups
+    environment:
+      - DB_HOST=db
+      - DB_NAME=${DB_NAME:-wordpress}
+      - DB_USER=${DB_USER:-wordpress}
+      - DB_PASSWORD=${DB_PASSWORD:-wordpress}
+      - DB_ROOT_PASSWORD=${DB_ROOT_PASSWORD:-rootpassword}
+    depends_on:
+      - db
+    networks:
+      - wordpress-network
+    restart: unless-stopped
+
+  # Service Nginx
+  nginx:
+    image: nginx:alpine
+    container_name: wordpress-nginx
+    ports:
+      - "${NGINX_PORT:-8080}:80"
+    volumes:
+      # Bind mount du dossier WordPress
+      - ./wordpress:/var/www/html
+      # Bind mount de la configuration Nginx
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - php
+    networks:
+      - wordpress-network
+    restart: unless-stopped
+
+  # Service MariaDB
+  db:
+    image: mariadb:latest
+    container_name: wordpress-db
+    ports:
+      - "${DB_PORT:-3306}:3306"
+    volumes:
+      # Bind mount des données de la base (persistance)
+      - ./database:/var/lib/mysql
+      # Bind mount pour les scripts SQL d'initialisation
+      # Note: MariaDB importe automatiquement les fichiers .sql dans ce dossier
+      # lors de la première initialisation (si ./database est vide)
+      - ./backups:/docker-entrypoint-initdb.d:ro
+      # Bind mount pour les scripts personnalisés
+      - ./scripts:/scripts
+    environment:
+      - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASSWORD:-rootpassword}
+      - MYSQL_DATABASE=${DB_NAME:-wordpress}
+      - MYSQL_USER=${DB_USER:-wordpress}
+      - MYSQL_PASSWORD=${DB_PASSWORD:-wordpress}
+    networks:
+      - wordpress-network
+    restart: unless-stopped
+    # Note: L'import automatique de db.sql se fait via le mécanisme standard
+    # de MariaDB qui importe tous les fichiers .sql dans /docker-entrypoint-initdb.d/
+    # lors de la première initialisation de la base (quand ./database est vide)
+
+  # Service PhpMyAdmin
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:latest
+    container_name: wordpress-phpmyadmin
+    ports:
+      - "${PHPMYADMIN_PORT:-8081}:80"
+    environment:
+      - PMA_HOST=db
+      - PMA_PORT=3306
+      - PMA_USER=${DB_USER:-wordpress}
+      - PMA_PASSWORD=${DB_PASSWORD:-wordpress}
+      - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASSWORD:-rootpassword}
+    depends_on:
+      - db
+    networks:
+      - wordpress-network
+    restart: unless-stopped
+
+networks:
+  wordpress-network:
+    driver: bridge

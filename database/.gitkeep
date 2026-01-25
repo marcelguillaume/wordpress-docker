@@ -1,0 +1,2 @@
+# Ce fichier permet de garder le dossier database dans Git même s'il est vide
+# Les données MariaDB seront stockées ici (ne pas versionner)
