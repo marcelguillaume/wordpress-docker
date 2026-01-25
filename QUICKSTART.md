@@ -57,11 +57,6 @@ wp core install \
     --admin_email=admin@example.com
 ```
 
-**Option B : Via le navigateur**
-
-1. Ouvrir http://localhost:8080
-2. Suivre l'assistant d'installation
-3. Utiliser les identifiants depuis `.env`
 
 ## 📍 Accès aux services
 
@@ -77,21 +72,17 @@ wp core install \
 # Démarrer
 docker-compose up -d
 
-# Arrêter (avec sauvegarde automatique)
-./scripts/docker-compose-down.sh
+# Arrêter (les données sont automatiquement persistées dans ./database)
+docker-compose down
 
 # Voir les logs
 docker-compose logs -f
 
-# Sauvegarder la base manuellement
-./scripts/backup-db.sh
-
-# Restaurer la base
-./scripts/restore-db.sh
-
 # Utiliser WP-CLI
 docker exec -it wordpress-php wp plugin list
 ```
+
+**Note :** Les données sont automatiquement persistées dans `./database`. Aucun script nécessaire - la persistance est automatique.
 
 ## 📚 Documentation complète
 

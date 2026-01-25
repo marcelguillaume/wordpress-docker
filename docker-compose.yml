@@ -10,10 +10,6 @@ services:
     volumes:
       # Bind mount du dossier WordPress (éditable depuis l'IDE local)
       - ./wordpress:/var/www/html
-      # Bind mount pour les scripts
-      - ./scripts:/scripts
-      # Bind mount pour les backups
-      - ./backups:/backups
     environment:
       - DB_HOST=db
       - DB_NAME=${DB_NAME:-wordpress}
@@ -56,8 +52,6 @@ services:
       # Note: MariaDB importe automatiquement les fichiers .sql dans ce dossier
       # lors de la première initialisation (si ./database est vide)
       - ./backups:/docker-entrypoint-initdb.d:ro
-      # Bind mount pour les scripts personnalisés
-      - ./scripts:/scripts
     environment:
       - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASSWORD:-rootpassword}
       - MYSQL_DATABASE=${DB_NAME:-wordpress}

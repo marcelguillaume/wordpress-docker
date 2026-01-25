@@ -28,7 +28,7 @@ Modifiez les valeurs dans `.env` si nécessaire (mots de passe, ports, etc.).
 ### 3. Créer les dossiers nécessaires
 
 ```bash
-mkdir -p wordpress database backups scripts nginx
+mkdir -p wordpress database backups nginx
 ```
 
 ### 4. Construire et démarrer les containers
@@ -51,14 +51,10 @@ wordpress-docker/
 ├── README.md               # Ce fichier
 ├── nginx/
 │   └── default.conf        # Configuration Nginx
-├── scripts/
-│   ├── backup-db.sh        # Script de sauvegarde de la base
-│   ├── restore-db.sh       # Script de restauration de la base
-│   └── init-db.sh          # Script d'initialisation (automatique)
 ├── wordpress/              # Fichiers WordPress (vide au départ)
-├── database/               # Données MariaDB (créé automatiquement)
-└── backups/                # Sauvegardes SQL
-    └── db.sql              # Sauvegarde automatique (optionnel)
+├── database/               # Données MariaDB persistées (bind mount)
+└── backups/                # Dossier pour l'import automatique de db.sql
+    └── db.sql              # Import automatique au premier démarrage (si présent)
 ```
 
 ## 🌐 Accès aux services
@@ -134,58 +130,25 @@ docker exec -it wordpress-php wp --info
 docker exec -it wordpress-php wp plugin list
 ```
 
-## 💾 Sauvegarde et restauration de la base de données
+## 💾 Persistance de la base de données
 
-### Sauvegarde automatique à l'arrêt
+**Important :** Les données de la base de données sont **automatiquement persistées** dans le dossier `./database` grâce au bind mount. 
 
-Pour créer automatiquement une sauvegarde avant d'arrêter les containers, utilisez le script wrapper :
+- ✅ Quand vous arrêtez les containers avec `docker-compose down`, les données restent dans `./database`
+- ✅ Au prochain démarrage, les données sont automatiquement restaurées
+- ✅ **Aucun script nécessaire** - la persistance est automatique
 
-```bash
-./scripts/docker-compose-down.sh
-```
+Le dossier `./database` contient tous les fichiers de MariaDB directement sur votre disque local.
 
-Ce script :
-1. Crée une sauvegarde automatique dans `./backups/db.sql`
-2. Arrête tous les containers
+### Import automatique au démarrage (optionnel)
 
-**Note :** Si vous utilisez directement `docker-compose down`, la sauvegarde ne sera pas créée automatiquement.
+Si le fichier `./backups/db.sql` existe, il sera automatiquement importé lors du **premier démarrage** du container MariaDB (quand `./database` est vide).
 
-### Sauvegarde manuelle
+**Cas d'usage :** Utile pour initialiser une nouvelle installation avec des données pré-configurées.
 
-```bash
-# Rendre le script exécutable (première fois seulement)
-chmod +x scripts/backup-db.sh
+**Important :** L'import automatique ne fonctionne que si le dossier `./database` est vide (première initialisation). Si vous avez déjà une base de données existante dans `./database`, elle sera utilisée directement (pas d'import).
 
-# Créer une sauvegarde
-./scripts/backup-db.sh
-
-# Créer une sauvegarde avec un nom personnalisé
-./scripts/backup-db.sh mon_backup.sql
-```
-
-Le script crée une sauvegarde dans `./backups/` avec un timestamp, et crée également un lien symbolique `db.sql` vers la dernière sauvegarde.
-
-### Restauration
-
-```bash
-# Rendre le script exécutable (première fois seulement)
-chmod +x scripts/restore-db.sh
-
-# Restaurer depuis db.sql (par défaut)
-./scripts/restore-db.sh
-
-# Restaurer depuis un fichier spécifique
-./scripts/restore-db.sh backups/backup_20240125_120000.sql
-```
-
-**⚠️ Attention :** La restauration écrase toutes les données actuelles de la base de données !
-
-### Import automatique au démarrage
-
-Si le fichier `./backups/db.sql` existe, il sera automatiquement importé lors du **premier démarrage** du container MariaDB.
-
-**Important :** L'import automatique ne fonctionne que si le dossier `./database` est vide (première initialisation). Si vous avez déjà une base de données existante, vous devez :
-
+Pour forcer un import depuis `db.sql` :
 1. Supprimer le dossier `./database` (⚠️ cela supprime toutes les données)
 2. Placer votre fichier `db.sql` dans `./backups/`
 3. Redémarrer les containers : `docker-compose up -d`
@@ -198,10 +161,7 @@ L'import se fera automatiquement lors de la réinitialisation de la base.
 # Démarrer les containers
 docker-compose up -d
 
-# Arrêter les containers (avec sauvegarde automatique)
-./scripts/docker-compose-down.sh
-
-# Arrêter les containers (sans sauvegarde automatique)
+# Arrêter les containers (les données sont automatiquement persistées dans ./database)
 docker-compose down
 
 # Voir les logs
@@ -232,6 +192,14 @@ Tous les fichiers WordPress dans `./wordpress` sont directement modifiables depu
 **Exemple :**
 - Modifiez `./wordpress/wp-config.php` depuis VS Code → changements immédiatement visibles
 - Ajoutez un thème dans `./wordpress/wp-content/themes/` → disponible immédiatement
+
+## 💾 Persistance des données
+
+**Base de données :** Les données MariaDB sont automatiquement persistées dans `./database`. Aucun script nécessaire - la persistance est automatique via le bind mount.
+
+**WordPress :** Les fichiers WordPress dans `./wordpress` sont directement sur votre disque local, donc toujours persistés.
+
+**Import initial :** Le dossier `./backups` permet d'importer automatiquement un fichier `db.sql` lors du premier démarrage (si `./database` est vide).
 
 ## 🔐 Sécurité
 
@@ -265,6 +233,8 @@ Sur Linux/WSL, vous pouvez avoir besoin d'ajuster les permissions :
 sudo chown -R $USER:$USER wordpress database backups
 ```
 
+**Note :** Le dossier `backups` n'est utilisé que pour l'import automatique de `db.sql` au premier démarrage.
+
 ### La base de données ne se connecte pas
 
 1. Vérifiez que le container `db` est démarré : `docker ps`
@@ -290,7 +260,7 @@ Ce template est fourni à des fins éducatives. Adaptez-le selon vos besoins.
 
 ## 🤝 Contribution
 
-Ce projet est destiné à des étudiants. N'hésitez pas à améliorer la documentation ou les scripts selon vos besoins.
+Ce projet est destiné à des étudiants. N'hésitez pas à améliorer la documentation selon vos besoins.
 
 ---
 
