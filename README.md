@@ -197,3 +197,12 @@ Ce projet est destiné à des étudiants. N'hésitez pas à améliorer la docume
 ---
 
 **Bon développement ! 🚀**
+
+
+## Problème avec les règles de droit
+
+docker exec -it wordpress-php bash
+
+chown -R www-data:www-data /var/www/html
+find /var/www/html/wp-content -type d -exec chmod 755 {} \;
+find /var/www/html/wp-content -type f -exec chmod 644 {} \;
