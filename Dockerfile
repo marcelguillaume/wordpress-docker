@@ -51,12 +51,6 @@ RUN curl -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli
     && mv wp-cli.phar /usr/local/bin/wp \
     && wp --info
 
-# Installation de Composer (gestionnaire de dépendances PHP)
-RUN php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');" \
-    && php composer-setup.php --install-dir=/usr/local/bin --filename=composer \
-    && php -r "unlink('composer-setup.php');" \
-    && composer --version
-
 # Création du répertoire de travail WordPress
 WORKDIR /var/www/html
 
